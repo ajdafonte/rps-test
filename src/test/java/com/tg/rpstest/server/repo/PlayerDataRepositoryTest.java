@@ -1,4 +1,4 @@
-package com.tg.rpstest.repo;
+package com.tg.rpstest.server.repo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -19,22 +19,23 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.tg.rpstest.domain.PlayerData;
-import com.tg.rpstest.io.IoFileHandler;
-import com.tg.rpstest.io.IoFileHandlerException;
+import com.tg.rpstest.error.FileProcessorException;
+import com.tg.rpstest.server.domain.PlayerData;
+import com.tg.rpstest.server.io.TextFileProcessor;
 
 
 /**
- *
+ * PlayerDataRepositoryTest class - Test PlayerDataRepository class.
  */
 @ExtendWith(MockitoExtension.class)
 public class PlayerDataRepositoryTest
 {
 
     @Mock
-    private IoFileHandler ioFileHandler;
+    private TextFileProcessor ioFileHandler;
 
-    private static final String MOCK_FILE_PATH = "src/test/resources/player-repo-test.txt";
+    private static final String MOCK_FILE_PATH1 = "src/test/resources/player-repo-test.txt";
+    private static final String MOCK_FILE_PATH2 = "src/test/resources/player-repo-write-test.txt";
     private static final String MOCK_NAME1 = "Buzz";
     private static final String MOCK_NAME2 = "Woody";
     private static final String MOCK_WINS1 = "5";
@@ -79,16 +80,16 @@ public class PlayerDataRepositoryTest
     @BeforeEach
     public void setUp()
     {
-        this.playerDataRepository = new PlayerDataRepository(ioFileHandler, MOCK_FILE_PATH);
+        this.playerDataRepository = new PlayerDataRepository(ioFileHandler, MOCK_FILE_PATH1);
     }
 
     // findAll - ok
     @Test
-    public void givenValidData_whenFindAllPlayersData_thenReturnAllPlayersData() throws IoFileHandlerException
+    public void givenValidData_whenFindAllPlayersData_thenReturnAllPlayersData() throws FileProcessorException
     {
         // given
         final List<PlayerData> expectedPlayersData = MOCK_PLAYERS_DATA;
-        Mockito.when(ioFileHandler.readFromFile(MOCK_FILE_PATH)).thenReturn(MOCK_DATA);
+        Mockito.when(ioFileHandler.readDataFromFile(MOCK_FILE_PATH1)).thenReturn(MOCK_DATA);
 
         // when
         final List<PlayerData> playersData = playerDataRepository.findAll();
@@ -101,22 +102,22 @@ public class PlayerDataRepositoryTest
 
     // findAll - nok
     @Test
-    public void givenExceptionReadingData_whenFindAllPlayersData_thenThrowSpecificException() throws IoFileHandlerException
+    public void givenExceptionReadingData_whenFindAllPlayersData_thenThrowSpecificException() throws FileProcessorException
     {
         // given
-        Mockito.when(ioFileHandler.readFromFile(MOCK_FILE_PATH)).thenThrow(IoFileHandlerException.class);
+        Mockito.when(ioFileHandler.readDataFromFile(MOCK_FILE_PATH1)).thenThrow(FileProcessorException.class);
 
         // when + then
-        Assertions.assertThrows(IoFileHandlerException.class, () -> playerDataRepository.findAll());
+        Assertions.assertThrows(FileProcessorException.class, () -> playerDataRepository.findAll());
     }
 
     // findAll - no data
     @Test
-    public void givenEmptyData_whenFindAllPlayersData_thenReturnEmptyPlayersData() throws IoFileHandlerException
+    public void givenEmptyData_whenFindAllPlayersData_thenReturnEmptyPlayersData() throws FileProcessorException
     {
         // given
         final List<PlayerData> expectedPlayersData = Collections.emptyList();
-        Mockito.when(ioFileHandler.readFromFile(MOCK_FILE_PATH)).thenReturn(MOCK_EMPTY_DATA);
+        Mockito.when(ioFileHandler.readDataFromFile(MOCK_FILE_PATH1)).thenReturn(MOCK_EMPTY_DATA);
 
         // when
         final List<PlayerData> playersData = playerDataRepository.findAll();
@@ -129,19 +130,19 @@ public class PlayerDataRepositoryTest
 
     // saveAll - ok
     @Test
-    public void givenValidData_whenSaveAllPlayersData_thenSaveCorrectly() throws IoFileHandlerException, IOException
+    public void givenValidData_whenSaveAllPlayersData_thenSaveCorrectly() throws FileProcessorException
     {
         // given
-        Files.deleteIfExists(new File(MOCK_FILE_PATH).toPath()); // setup part - if file already exists, remove
+        final PlayerDataRepository repository = new PlayerDataRepository(ioFileHandler, MOCK_FILE_PATH2);
         final List<PlayerData> expectedPlayersData = MOCK_PLAYERS_DATA;
-        Mockito.doCallRealMethod().when(ioFileHandler).writeToFile(MOCK_FILE_PATH, MOCK_DATA);
-        Mockito.doCallRealMethod().when(ioFileHandler).readFromFile(MOCK_FILE_PATH);
+        Mockito.doCallRealMethod().when(ioFileHandler).writeDataToFile(MOCK_FILE_PATH2, MOCK_DATA);
+        Mockito.doCallRealMethod().when(ioFileHandler).readDataFromFile(MOCK_FILE_PATH2);
 
         // when
-        Assertions.assertDoesNotThrow(() -> playerDataRepository.saveAll(expectedPlayersData));
+        Assertions.assertDoesNotThrow(() -> repository.saveAll(expectedPlayersData));
 
         // then
-        final List<PlayerData> writtenPlayersData = playerDataRepository.findAll();
+        final List<PlayerData> writtenPlayersData = repository.findAll();
         assertFalse(writtenPlayersData.isEmpty());
         assertEquals(expectedPlayersData.size(), writtenPlayersData.size());
         assertEquals(expectedPlayersData, writtenPlayersData);
@@ -149,45 +150,49 @@ public class PlayerDataRepositoryTest
 
     // saveAll - nok
     @Test
-    public void givenExceptionWritingData_whenSaveAllPlayersData_thenThrowSpecificException() throws IoFileHandlerException
+    public void givenExceptionWritingData_whenSaveAllPlayersData_thenThrowSpecificException() throws FileProcessorException
     {
+        final PlayerDataRepository repository = new PlayerDataRepository(ioFileHandler, MOCK_FILE_PATH2);
+
         // given
-        Mockito.doThrow(IoFileHandlerException.class).when(ioFileHandler).writeToFile(MOCK_FILE_PATH, MOCK_DATA);
+        Mockito.doThrow(FileProcessorException.class).when(ioFileHandler).writeDataToFile(MOCK_FILE_PATH2, MOCK_DATA);
 
         // when + then
-        Assertions.assertThrows(IoFileHandlerException.class, () -> playerDataRepository.saveAll(MOCK_PLAYERS_DATA));
+        Assertions.assertThrows(FileProcessorException.class, () -> repository.saveAll(MOCK_PLAYERS_DATA));
     }
 
     // saveAll - no data
     @Test
-    public void givenNullData_whenSaveAllPlayersData_thenEmptyFile() throws IoFileHandlerException, IOException
+    public void givenNullData_whenSaveAllPlayersData_thenEmptyFile() throws FileProcessorException, IOException
     {
         // given
-        Files.deleteIfExists(new File(MOCK_FILE_PATH).toPath()); // setup part - if file already exists, remove
-        Mockito.doCallRealMethod().when(ioFileHandler).writeToFile(MOCK_FILE_PATH, MOCK_EMPTY_DATA);
-        Mockito.doCallRealMethod().when(ioFileHandler).readFromFile(MOCK_FILE_PATH);
+        final PlayerDataRepository repository = new PlayerDataRepository(ioFileHandler, MOCK_FILE_PATH2);
+        Files.deleteIfExists(new File(MOCK_FILE_PATH2).toPath()); // setup part - if file already exists, remove
+        Mockito.doCallRealMethod().when(ioFileHandler).writeDataToFile(MOCK_FILE_PATH2, MOCK_EMPTY_DATA);
+        Mockito.doCallRealMethod().when(ioFileHandler).readDataFromFile(MOCK_FILE_PATH2);
 
         // when
-        Assertions.assertDoesNotThrow(() -> playerDataRepository.saveAll(null));
+        Assertions.assertDoesNotThrow(() -> repository.saveAll(null));
 
         // then
-        final List<PlayerData> writtenPlayersData = playerDataRepository.findAll();
+        final List<PlayerData> writtenPlayersData = repository.findAll();
         assertTrue(writtenPlayersData.isEmpty());
     }
 
     @Test
-    public void givenEmptyData_whenSaveAllPlayersData_thenEmptyFile() throws IoFileHandlerException, IOException
+    public void givenEmptyData_whenSaveAllPlayersData_thenEmptyFile() throws FileProcessorException, IOException
     {
         // given
-        Files.deleteIfExists(new File(MOCK_FILE_PATH).toPath()); // setup part - if file already exists, remove
-        Mockito.doCallRealMethod().when(ioFileHandler).writeToFile(MOCK_FILE_PATH, MOCK_EMPTY_DATA);
-        Mockito.doCallRealMethod().when(ioFileHandler).readFromFile(MOCK_FILE_PATH);
+        final PlayerDataRepository repository = new PlayerDataRepository(ioFileHandler, MOCK_FILE_PATH2);
+        Files.deleteIfExists(new File(MOCK_FILE_PATH2).toPath()); // setup part - if file already exists, remove
+        Mockito.doCallRealMethod().when(ioFileHandler).writeDataToFile(MOCK_FILE_PATH2, MOCK_EMPTY_DATA);
+        Mockito.doCallRealMethod().when(ioFileHandler).readDataFromFile(MOCK_FILE_PATH2);
 
         // when
-        Assertions.assertDoesNotThrow(() -> playerDataRepository.saveAll(Collections.emptyList()));
+        Assertions.assertDoesNotThrow(() -> repository.saveAll(Collections.emptyList()));
 
         // then
-        final List<PlayerData> writtenPlayersData = playerDataRepository.findAll();
+        final List<PlayerData> writtenPlayersData = repository.findAll();
         assertTrue(writtenPlayersData.isEmpty());
     }
 }

@@ -1,38 +1,38 @@
-package com.tg.rpstest.repo;
+package com.tg.rpstest.server.repo;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.tg.rpstest.domain.PlayerData;
-import com.tg.rpstest.io.IoFileHandler;
-import com.tg.rpstest.io.IoFileHandlerException;
+import com.tg.rpstest.error.FileProcessorException;
+import com.tg.rpstest.server.domain.PlayerData;
+import com.tg.rpstest.server.io.TextFileProcessor;
 
 
 /**
- *
+ * TODO - WIP - Add capability to store scores after each game
  */
 public class PlayerDataRepository
 {
-    private final IoFileHandler ioFileHandler;
+    private final TextFileProcessor textFileProcessor;
     private final String filePath;
 
-    public PlayerDataRepository(final IoFileHandler ioFileHandler, final String filePath)
+    public PlayerDataRepository(final TextFileProcessor textFileProcessor, final String filePath)
     {
-        this.ioFileHandler = ioFileHandler;
+        this.textFileProcessor = textFileProcessor;
         this.filePath = filePath;
     }
 
-    public List<PlayerData> findAll() throws IoFileHandlerException
+    public List<PlayerData> findAll() throws FileProcessorException
     {
-        final List<List<String>> dataRead = ioFileHandler.readFromFile(filePath);
+        final List<List<String>> dataRead = textFileProcessor.readDataFromFile(filePath);
 
         // skip first line - header from file
         return PlayerDataMapper.mapFromReader(dataRead.subList(1, dataRead.size()));
     }
 
-    public void saveAll(final List<PlayerData> playersData) throws IoFileHandlerException
+    public void saveAll(final List<PlayerData> playersData) throws FileProcessorException
     {
         // content to save (need to append data after header)
         final List<List<String>> dataToWrite = new ArrayList<>();
@@ -43,8 +43,17 @@ public class PlayerDataRepository
         }
 
         // add content
-        ioFileHandler.writeToFile(filePath, dataToWrite);
+        textFileProcessor.writeDataToFile(filePath, dataToWrite);
     }
+
+    // TODO - WIP - Add capability to store registered user scores after each game
+//    public void save(final PlayerData playersData)
+//    {
+//        final List<String> entity = PlayerDataMapper.mapToWriterRecord(playersData);
+//
+//        // add content
+//        textFileProcessor.writeRecord(entity);
+//    }
 
     private static class PlayerDataMapper
     {

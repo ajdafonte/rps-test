@@ -1,4 +1,4 @@
-package com.tg.rpstest.domain;
+package com.tg.rpstest.server.domain;
 
 import java.util.Objects;
 

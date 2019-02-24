@@ -1,4 +1,4 @@
-package com.tg.rpstest.io;
+package com.tg.rpstest.server.io;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -9,14 +9,17 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.tg.rpstest.error.FileProcessorException;
+
 
 /**
- *
+ * TextFileProcessorTest class - Test TextFileProcessor class.
  */
-public class IoFileHandlerTest
+public class TextFileProcessorTest
 {
     private static final String MOCK_FILE_PATH = "src/test/resources/io-test.txt";
     private static final String MOCK_NEW_FILE_PATH = "src/test/resources/new-io-test.txt";
@@ -40,7 +43,7 @@ public class IoFileHandlerTest
     private static final List<String> MOCK_RECORD3;
     private static final List<String> MOCK_RECORD_HEADER;
 
-    private IoFileHandler ioFileHandler;
+    private TextFileProcessor textFileProcessor;
 
     static
     {
@@ -55,18 +58,25 @@ public class IoFileHandlerTest
     @BeforeEach
     public void setUp()
     {
-        this.ioFileHandler = new IoFileHandler();
+        this.textFileProcessor = new TextFileProcessor();
+    }
+
+    @AfterEach
+    public void tearDown() throws IOException
+    {
+        // if test file already exists, remove
+        Files.deleteIfExists(new File(MOCK_NEW_FILE_PATH).toPath());
     }
 
     // read data ok
     @Test
-    public void givenFile_whenReadingFromFile_thenReturnDataRead() throws IoFileHandlerException
+    public void givenFile_whenReadingFromFile_thenReturnDataRead() throws FileProcessorException
     {
         // given
         final List<List<String>> expectedData = MOCK_READ_DATA;
 
         // when
-        final List<List<String>> data = ioFileHandler.readFromFile(MOCK_FILE_PATH);
+        final List<List<String>> data = textFileProcessor.readDataFromFile(MOCK_FILE_PATH);
 
         // then
         assertFalse(data.isEmpty());
@@ -76,18 +86,17 @@ public class IoFileHandlerTest
 
     // write data ok
     @Test
-    public void givenFile_whenWritingToFile_thenDataCorrectlyWritten() throws IoFileHandlerException, IOException
+    public void givenFile_whenWritingToFile_thenDataCorrectlyWritten() throws FileProcessorException
     {
         // given
         final String fileName = MOCK_NEW_FILE_PATH;
-        Files.deleteIfExists(new File(fileName).toPath()); // setup part - if file already exists, remove
         final List<List<String>> dataToWrite = MOCK_WRITE_DATA;
 
         // when
-        ioFileHandler.writeToFile(fileName, dataToWrite);
+        textFileProcessor.writeDataToFile(fileName, dataToWrite);
 
         // then
-        final List<List<String>> expectedData = ioFileHandler.readFromFile(fileName);
+        final List<List<String>> expectedData = textFileProcessor.readDataFromFile(fileName);
 
         assertFalse(expectedData.isEmpty());
         assertEquals(expectedData.size(), dataToWrite.size());
